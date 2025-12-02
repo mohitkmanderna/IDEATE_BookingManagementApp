@@ -1,65 +1,147 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { getLogoUrl } from "./actions";
 import Image from "next/image";
 
+interface Booking {
+  id: string;
+  startTime: string;
+  endTime: string;
+  room: {
+    name: string;
+  };
+}
+
 export default function Home() {
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchBookings();
+    fetchLogo();
+  }, []);
+
+  const fetchLogo = async () => {
+    const url = await getLogoUrl();
+    setLogoUrl(url);
+  };
+
+  const fetchBookings = async () => {
+    try {
+      const res = await fetch("/api/bookings?status=APPROVED");
+      const data = await res.json();
+      setBookings(data);
+    } catch (error) {
+      console.error("Failed to fetch bookings", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const bookingsOnDate = bookings.filter((booking) => {
+    if (!date) return false;
+    const bookingDate = new Date(booking.startTime);
+    return (
+      bookingDate.getDate() === date.getDate() &&
+      bookingDate.getMonth() === date.getMonth() &&
+      bookingDate.getFullYear() === date.getFullYear()
+    );
+  });
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-800 p-8">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl text-zinc-900 dark:text-zinc-50">
+            {logoUrl && (
+              <div className="flex justify-center mb-6">
+                <img
+                  src={logoUrl}
+                  alt="Logo"
+                  className="h-16 object-contain"
+                />
+              </div>
+            )}
+            Booking Calendar
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-lg text-zinc-500 dark:text-zinc-400">
+            Check availability and book a room for your meeting.
           </p>
+          <div className="flex justify-center gap-4">
+            <Link href="/book">
+              <Button size="lg" className="font-semibold">
+                Book a Room
+              </Button>
+            </Link>
+            <Link href="/track">
+              <Button variant="outline" size="lg">
+                Track Request
+              </Button>
+            </Link>
+
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="grid md:grid-cols-2 gap-8">
+          <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <CardHeader>
+              <CardTitle>Select a Date</CardTitle>
+            </CardHeader>
+            <CardContent className="flex justify-center">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={setDate}
+                className="rounded-md border"
+              />
+            </CardContent>
+          </Card>
+
+          <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <CardHeader>
+              <CardTitle>
+                Bookings for {date ? format(date, "MMMM do, yyyy") : "Selected Date"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <p className="text-zinc-500">Loading...</p>
+              ) : bookingsOnDate.length > 0 ? (
+                <ul className="space-y-4">
+                  {bookingsOnDate.map((booking) => (
+                    <li
+                      key={booking.id}
+                      className="flex flex-col p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800"
+                    >
+                      <div className="flex justify-between items-start">
+                        <span className="font-semibold text-zinc-900 dark:text-zinc-50">
+                          {booking.room.name}
+                        </span>
+                        <Badge variant="secondary">Approved</Badge>
+                      </div>
+                      <div className="text-sm text-zinc-500 mt-1">
+                        {format(new Date(booking.startTime), "h:mm a")} -{" "}
+                        {format(new Date(booking.endTime), "h:mm a")}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-zinc-500 italic">No bookings found for this date.</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

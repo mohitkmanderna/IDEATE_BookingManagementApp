@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id          String    @id
+  name        String
+  description String?
+  bookings    Booking[]
+}
+
+model Booking {
+  id              String   @id
+  userName        String
+  userEmail       String
+  roomId          String
+  startTime       DateTime
+  endTime         DateTime
+  purpose         String
+  status          String   @default("PENDING")
+  createdAt       DateTime @default(now())
+  rejectionReason String?
+  room            Room     @relation(fields: [roomId], references: [id])
+}
+
+model Static {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+}
+
+model Otp {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  code      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
