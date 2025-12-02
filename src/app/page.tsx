@@ -32,7 +32,7 @@ export default function Home() {
 
   const fetchLogo = async () => {
     const url = await getLogoUrl();
-    setLogoUrl(url);
+    setLogoUrl(url || null);
   };
 
   const fetchBookings = async () => {
